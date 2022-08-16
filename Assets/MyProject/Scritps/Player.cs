@@ -1,7 +1,8 @@
+using System.Collections;
 using UnityEngine;
 namespace Asteroids
 {
-    internal sealed class Player : MonoBehaviour
+    internal sealed class Player : MonoBehaviour, IDamageble
     {
         [SerializeField] private float _speed;
         [SerializeField] private float _acceleration;
@@ -11,8 +12,20 @@ namespace Asteroids
         [SerializeField] private float _force;
         private Camera _camera;
         private Ship _ship;
+        [SerializeField]
+
+        private Health _health = new Health(100f, 100f);
+        private AmmoPool _ammoPoll;
+
+        public void OnDamage(float damage)
+        {
+            _health.ChangeCurrentHealth(damage);
+            Debug.Log(_health.Current);
+        }
+
         private void Start()
         {
+            _ammoPoll = new AmmoPool(_bullet);
             _camera = Camera.main;
             var moveTransform = new AccelerationMove(transform, _speed, _acceleration);
             var rotation = new RotationShip(transform);
@@ -35,21 +48,25 @@ namespace Asteroids
             }
             if (Input.GetButtonDown("Fire1"))
             {
-                var temAmmunition = Instantiate(_bullet, _barrel.position,
-                _barrel.rotation);
-                temAmmunition.AddForce(_barrel.up * _force);
+                var temAmmunition = _ammoPoll.Get();
+                temAmmunition.transform.position = _barrel.transform.position;
+                StartCoroutine(corutineDelete(temAmmunition));
+              //  var temAmmunition = Instantiate(_bullet, _barrel.position,  _barrel.rotation);
+                temAmmunition.AddForce(_barrel.up * _force, ForceMode2D.Impulse);
             }
         }
-        private void OnCollisionEnter2D(Collision2D other)
+
+        IEnumerator corutineDelete(Rigidbody2D _bullet)
         {
-            if (_hp <= 0)
+            float _time = 0;
+            while (_time < 2)
             {
-                Destroy(gameObject);
+                _time += Time.deltaTime;
+                yield return null;
             }
-            else
-            {
-                _hp--;
-            }
+            _ammoPoll.Return(_bullet);
         }
+
+        
     }
 }
